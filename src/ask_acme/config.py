@@ -1,4 +1,5 @@
-"""Application configuration loaded from environment variables.
+"""
+Application configuration loaded from environment variables.
 
 Values are read from environment variables and/or a `.env` file. Validation
 happens the first time `get_settings()` is called and the result is cached, so
