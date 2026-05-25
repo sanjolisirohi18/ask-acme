@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
-        extra="ignore",          # silently ignore unrelated env vars
+        extra="ignore",          # ignore unrelated process-env vars (PATH, HOME, etc.) we don't care about — forbid would crash on every import
         case_sensitive=False,    # POSTGRES_USER == postgres_user
     )
 
