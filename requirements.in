@@ -1,0 +1,22 @@
+# Core
+fastapi
+uvicorn[standard]
+pydantic
+pydantic-settings
+python-dotenv
+
+# Database
+sqlalchemy
+asyncpg
+psycopg[binary]
+alembic
+
+# Vector DB
+qdrant-client
+
+# Embeddings + LLM
+openai
+tiktoken
+
+# Tooling
+pip-tools

@@ -1,0 +1,13 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "ask-acme"
+version = "0.1.0"
+description = "A short description of the project"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "pydantic-settings>=2.0",
+]
