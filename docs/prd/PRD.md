@@ -183,8 +183,8 @@ Every FR has a **testability note** indicating how the requirement is verified.
 **FR-18 (P0):** Every query shall be associated with an authenticated user identity. Unauthenticated queries are rejected with HTTP 401.
 *Testability:* Submit a query without an auth token; verify a 401 response.
 
-**FR-19 (P0):** A user belongs to one persona and zero or more content groups. Persona and group memberships are stored separately. A user with no content groups can submit queries but will receive no results from any non-public content.
-*Testability:* Create a user with no content groups; submit a query; verify the response includes only chunks from the `public` group.
+**FR-19 (P0):** A user belongs to one persona and one or more content groups. Persona and group memberships are stored separately. At minimum, every active user belongs to the `public` group; this is added automatically at account creation. An Admin cannot remove a user's last remaining content group — to revoke all access, an Admin must deactivate the user instead.
+*Testability:* Create a user; verify they belong to `public` by default. Attempt to remove `public` from a user whose only group is `public`; verify the operation fails with a clear error.
 
 **FR-20 (P0):** Content groups are flat, not hierarchical. A user can belong to any number of content groups. Membership in one group does not imply membership in any other group. New Regular Users and Admins are assigned the `public` group by default; Viewers are assigned only the `public` group. All other group memberships are explicitly assigned by an Admin (FR-23).
 *Testability:* Create a user with groups `{public, eng-platform}`. Submit a query whose answer is in an `eng-shared` document; verify the chunk is NOT returned. Submit the same query against an `eng-platform` document; verify the chunk IS returned. This confirms that `eng-platform` membership does not implicitly grant `eng-shared` access.
