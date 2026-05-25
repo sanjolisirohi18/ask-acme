@@ -39,7 +39,7 @@ services:
       start_period: 10s
 
   app:
-    image: python:3.12-slim
+    image: python:3.13-slim
     container_name: ask-acme-app
     restart: unless-stopped
     working_dir: /app
@@ -47,8 +47,25 @@ services:
     # Keeps the container alive so `docker compose up` doesn't exit immediately.
     command: ["python", "-c", "import time; print('app placeholder running'); time.sleep(infinity := 10**9)"]
     environment:
-      QDRANT_URL: http://qdrant:6333
-      DATABASE_URL: postgresql://${POSTGRES_USER:-acme}:${POSTGRES_PASSWORD:-acme}@postgres:5432/${POSTGRES_DB:-acme}
+      # The app reads individual settings (see src/ask_acme/config.py), not a
+      # single DATABASE_URL / QDRANT_URL — it composes the DSNs itself. Other
+      # values are interpolated from your shell or .env. Keep these var names in
+      # sync with config.py and .env.example.
+      #
+      # POSTGRES_HOST / QDRANT_HOST are set to the in-network service names ON
+      # PURPOSE and must stay: config.py defaults them to "localhost" (for
+      # host-machine runs), which would NOT resolve from inside this container.
+      POSTGRES_USER: ${POSTGRES_USER:-acme}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-acme}
+      POSTGRES_DB: ${POSTGRES_DB:-acme}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      QDRANT_HOST: qdrant
+      QDRANT_HTTP_PORT: 6333
+      QDRANT_GRPC_PORT: 6334
+      QDRANT_COLLECTION: ${QDRANT_COLLECTION:-ask_acme_docs}
+      # Set QDRANT_API_KEY only when the Qdrant service has auth enabled.
+      OPENAI_API_KEY: ${OPENAI_API_KEY:?set OPENAI_API_KEY in your shell or .env}
     volumes:
       - ./:/app
     depends_on:

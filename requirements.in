@@ -6,6 +6,9 @@ pydantic-settings
 python-dotenv
 
 # Database
+# Two Postgres drivers on purpose: asyncpg for the app's async data path
+# (database_url_async) and psycopg for sync callers like Alembic migrations
+# (database_url). See src/ask_acme/config.py. Drop one only if that path goes away.
 sqlalchemy
 asyncpg
 psycopg[binary]

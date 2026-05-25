@@ -536,7 +536,7 @@ The table below summarizes the technology stack for Ask Acme v1. Each choice is 
 
 | Layer | Choice | Justification (one-liner) | ADR |
 |---|---|---|---|
-| Application language | **Python 3.11+** | Standard for AI/LLM workloads; rich ecosystem; team familiarity. | ADR-0001 |
+| Application language | **Python 3.13+** | Standard for AI/LLM workloads; rich ecosystem; team familiarity. | ADR-0001 |
 | API framework | **FastAPI** | Async-first, native Pydantic validation, automatic OpenAPI generation. | ADR-0002 |
 | Relational database | **PostgreSQL 16** | Mature, supports JSONB + array columns + full-text search + enums. | ADR-0003 |
 | Vector database | **Qdrant** | Payload filtering for permission-aware retrieval is first-class (critical for FR-12); strong gRPC API. | ADR-0004 |

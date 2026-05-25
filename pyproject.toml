@@ -5,9 +5,11 @@ build-backend = "hatchling.build"
 [project]
 name = "ask-acme"
 version = "0.1.0"
-description = "A short description of the project"
+description = "Permission-aware RAG system for natural-language Q&A over internal docs, returning grounded, cited answers."
 readme = "README.md"
-requires-python = ">=3.10"
-dependencies = [
-    "pydantic-settings>=2.0",
-]
+requires-python = ">=3.13"
+# Runtime dependencies are managed in requirements.in (the source) and pinned
+# in requirements.txt via `pip-compile requirements.in`. pyproject.toml is
+# metadata only — do not list runtime deps here, or they become a second,
+# drifting source of truth.
+dependencies = []

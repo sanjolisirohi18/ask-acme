@@ -49,141 +49,51 @@ ask-acme/
 
 ## Quick start
 
-## Quick start
-
-Clone the repo, set up `.env`, and bring the stack up with Docker Compose. Should take under 5 minutes on a machine with Docker already installed.
+`docker compose up` brings up the data stores (Qdrant + Postgres) plus an `app` container. **Heads-up for Phase 1:** the `app` container is currently a placeholder that just stays alive — the FastAPI service, ingestion, and search land in later Phase 1 steps. So today "running" means a healthy local Qdrant + Postgres you can build against.
 
 ### Prerequisites
 
-- **Docker** ≥ 24.0 with the Compose plugin (`docker compose`, not `docker-compose`)
-- **Python** ≥ 3.10 (only needed if you want to run the app outside Docker — the containerized setup uses Python 3.12)
-- **Git**
-- An **OpenAI API key** with access to embeddings + chat models
-
-Optional, for local development outside containers:
-- `pip-tools` for managing dependencies
+- **Docker** + **Docker Compose v2** — runs the whole stack via `docker compose ...`.
+- **Python 3.13+** — only for host-machine development/tooling (running code or `pip-compile` outside Docker); the containers ship their own interpreter.
+- **An OpenAI API key** — required by config; used once the embedding/generation steps land. Set a low spend cap (see [Cost expectations](#cost-expectations)).
 
 ### Setup
 
-1. **Clone the repository**
-
 ```bash
-   git clone  ask-acme
-   cd ask-acme
-```
+git clone <repo-url> ask-acme && cd ask-acme
 
-2. **Create your `.env` file**
+# 1. Configure: copy the template and fill in values.
+cp .env.example .env
+#    The only value you must change is OPENAI_API_KEY (the template ships a
+#    placeholder). Everything else has a working local default — see the
+#    Environment variables table below and src/ask_acme/config.py.
 
-```bash
-   cp .env.example .env
-```
-
-   Then edit `.env` and fill in:
-   - `POSTGRES_PASSWORD` — choose any value for local dev
-   - `OPENAI_API_KEY` — your real OpenAI key (starts with `sk-...`)
-   - Leave the other defaults as-is unless you have a reason to change them
-
-3. **(Optional) Install dependencies locally**
-
-   Only needed if you plan to run code outside Docker (tests, scripts, IDE integration):
-
-```bash
-   python -m venv .venv
-   source .venv/bin/activate          # Windows: .venv\Scripts\activate
-   pip install -r requirements.txt
-   pip install -e .                   # installs the `ask_acme` package itself
+# 2. (Optional) Host-machine dev env, to run code/tooling outside Docker.
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt   # pinned runtime deps
+pip install -e .                  # the ask_acme package itself (metadata only, no deps)
 ```
 
 ### Running
 
-Bring up all three services (Qdrant, Postgres, app):
-
 ```bash
-docker compose up -d
+docker compose up -d           # start Qdrant (6333/6334), Postgres (5432), app
+docker compose ps              # check service health
+docker compose logs -f app     # follow the app container
+docker compose down            # stop everything (add -v to also wipe data volumes)
 ```
 
-Watch them come up and reach `healthy` status:
-
-```bash
-docker compose ps
-```
-
-You should see something like:
-NAME                  STATUS                    PORTS
-ask-acme-app          Up (healthy)
-ask-acme-postgres     Up (healthy)              0.0.0.0:5432->5432/tcp
-ask-acme-qdrant       Up (healthy)              0.0.0.0:6333-6334->6333-6334/tcp
-
-Follow logs from a specific service:
-
-```bash
-docker compose logs -f app
-```
-
-Stop everything (keeps volumes):
-
-```bash
-docker compose down
-```
-
-Stop and wipe all data (Postgres + Qdrant volumes):
-
-```bash
-docker compose down -v
-```
+Ports are published to `localhost`, so host-machine code uses the `config.py` defaults (`localhost:6333`, `localhost:5432`) with no overrides needed.
 
 ### Verifying it works
 
-**1. Postgres is reachable**
-
 ```bash
-docker compose exec postgres psql -U acme -d acme -c "SELECT version();"
+docker compose ps                                  # qdrant + postgres should report "(healthy)"
+curl http://localhost:6333/collections             # Qdrant -> JSON like {"result":{"collections":[]},"status":"ok",...}
+docker compose exec postgres psql -U acme -d acme -c '\conninfo'   # -> connected as user "acme" (use your POSTGRES_USER/DB if changed)
 ```
 
-Should print the PostgreSQL 16 version banner.
-
-**2. Qdrant is reachable**
-
-```bash
-curl http://localhost:6333/healthz
-# → healthz check passed
-
-curl http://localhost:6333/collections
-# → {"result":{"collections":[]},"status":"ok","time":...}
-```
-
-You can also open the Qdrant dashboard in a browser: <http://localhost:6333/dashboard>
-
-**3. The app container is alive**
-
-For now the app is a placeholder (it just sleeps), so the smoke test is simply:
-
-```bash
-docker compose logs app
-# → app placeholder running
-```
-
-Once a real FastAPI server is wired up, this section will be extended with:
-- `curl http://localhost:8000/health` to hit the health endpoint
-- A sample ingestion + query round-trip
-
-**4. Config loads correctly**
-
-If you installed the package locally, you can sanity-check that `pydantic-settings` reads your `.env`:
-
-```bash
-python -c "from ask_acme.config import settings; print(settings.qdrant_http_url, settings.postgres_host)"
-# → http://qdrant:6333 postgres
-```
-
-> **Container vs host hostnames.** The `.env.example` defaults (`POSTGRES_HOST=postgres`, `QDRANT_HOST=qdrant`) assume the app runs *inside* the docker-compose network, where service names resolve as hostnames. If you want to run the app directly on your host machine against the containerized infra, override these in your `.env`:
->
-> ```bash
-> POSTGRES_HOST=localhost
-> QDRANT_HOST=localhost
-> ```
->
-> The published ports (5432, 6333, 6334) are reachable from the host either way.
+Open the Qdrant dashboard at <http://localhost:6333/dashboard> to confirm the vector store is reachable. End-to-end smoke tests and sample queries arrive with the ingestion/search steps later in Phase 1; LLM-generated answers come in Phase 5.
 
 ---
 
@@ -198,15 +108,54 @@ For a complete architectural overview, see the [HLD](docs/hld/HLD.md). At a high
 
 Phase 1 implements the API Service and Ingestion Worker as a single application. They split into separate processes in later phases.
 
+> **Local dev security note:** the local Qdrant runs **unauthenticated** — no `QDRANT_API_KEY` is set on the container and its ports are published to `localhost`, so anything that can reach port 6333/6334 can read/write the index. This is acceptable for single-machine Phase 1 development only; production would enable an API key (`qdrant_api_key` is already wired in [config](src/ask_acme/config.py)), keep the data stores on a private network, and stop publishing their ports to the host. (Postgres is in the same boat: it uses a weak default password and a published port.)
+
 ## Environment variables
 
-The system is configured via environment variables. Copy `.env.example` to `.env` and fill in values.
+The system is configured via environment variables. Copy `.env.example` to `.env` and fill in values. The full schema (types, defaults, validation) lives in [`src/ask_acme/config.py`](src/ask_acme/config.py); a missing **required** variable makes the app fail fast at startup.
 
-> _TODO: list of required env vars, populated during Step 1._
+**Required** — no default; the app won't start without these (the `.env.example` template pre-fills working values for all but `OPENAI_API_KEY`):
+
+| Variable | Purpose |
+|---|---|
+| `OPENAI_API_KEY` | OpenAI key for embeddings (and, later, generation). Must be a real key. |
+| `POSTGRES_USER` | Postgres username. Also consumed by the Postgres container on first boot. |
+| `POSTGRES_PASSWORD` | Postgres password. Also consumed by the Postgres container on first boot. |
+| `POSTGRES_DB` | Postgres database name. Also consumed by the Postgres container on first boot. |
+| `QDRANT_COLLECTION` | Name of the Qdrant collection holding chunk embeddings. |
+
+**Optional** — sensible defaults; override only when needed:
+
+| Variable | Default | Notes |
+|---|---|---|
+| `POSTGRES_HOST` | `localhost` | Compose overrides to `postgres` inside the network. |
+| `POSTGRES_PORT` | `5432` | |
+| `QDRANT_HOST` | `localhost` | Compose overrides to `qdrant` inside the network. |
+| `QDRANT_HTTP_PORT` | `6333` | REST API + dashboard. |
+| `QDRANT_GRPC_PORT` | `6334` | gRPC. |
+| `QDRANT_API_KEY` | _(unset)_ | Local Qdrant is unauthenticated; set this when the server enforces a key. |
+| `ASK_ACME_ENV` | `development` | `development` \| `staging` \| `production`. |
+| `ASK_ACME_LOG_LEVEL` | `INFO` | `DEBUG` \| `INFO` \| `WARNING` \| `ERROR`. |
+| `ASK_ACME_DEBUG` | `false` | |
+| `ASK_ACME_HOST` | `0.0.0.0` | API server bind address (used once the server exists). |
+| `ASK_ACME_PORT` | `8000` | API server port (used once the server exists). |
 
 ## Project commands
 
-> _TODO: list of useful commands as they're built — ingest, search, run migrations, etc._
+What exists today (Phase 1 scaffold):
+
+```bash
+# Stack
+docker compose up -d            # start Qdrant + Postgres + app
+docker compose down             # stop (add -v to also delete data volumes)
+docker compose logs -f <svc>    # tail logs: svc = qdrant | postgres | app
+
+# Dependencies (host-machine)
+pip install -r requirements.txt # install pinned deps into your venv
+pip-compile requirements.in     # regenerate requirements.txt after editing requirements.in
+```
+
+Ingest, search, and database-migration commands will be added here as their Phase 1 steps land.
 
 ## Cost expectations
 
