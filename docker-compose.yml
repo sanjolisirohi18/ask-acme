@@ -26,13 +26,13 @@ services:
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-acme}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-acme}
-      POSTGRES_DB: ${POSTGRES_DB:-acme}
+      POSTGRES_USER: ${POSTGRES_USER:-admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      POSTGRES_DB: ${POSTGRES_DB:-ask_acme}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-acme} -d ${POSTGRES_DB:-acme}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-admin} -d ${POSTGRES_DB:-ask_acme}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -55,9 +55,9 @@ services:
       # POSTGRES_HOST / QDRANT_HOST are set to the in-network service names ON
       # PURPOSE and must stay: config.py defaults them to "localhost" (for
       # host-machine runs), which would NOT resolve from inside this container.
-      POSTGRES_USER: ${POSTGRES_USER:-acme}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-acme}
-      POSTGRES_DB: ${POSTGRES_DB:-acme}
+      POSTGRES_USER: ${POSTGRES_USER:-admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      POSTGRES_DB: ${POSTGRES_DB:-ask_acme}
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
       QDRANT_HOST: qdrant

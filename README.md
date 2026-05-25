@@ -90,7 +90,7 @@ Ports are published to `localhost`, so host-machine code uses the `config.py` de
 ```bash
 docker compose ps                                  # qdrant + postgres should report "(healthy)"
 curl http://localhost:6333/collections             # Qdrant -> JSON like {"result":{"collections":[]},"status":"ok",...}
-docker compose exec postgres psql -U acme -d acme -c '\conninfo'   # -> connected as user "acme" (use your POSTGRES_USER/DB if changed)
+docker compose exec postgres psql -U admin -d ask_acme -c '\conninfo'   # -> connected as user "admin" (use your POSTGRES_USER/DB if changed)
 ```
 
 Open the Qdrant dashboard at <http://localhost:6333/dashboard> to confirm the vector store is reachable. End-to-end smoke tests and sample queries arrive with the ingestion/search steps later in Phase 1; LLM-generated answers come in Phase 5.
